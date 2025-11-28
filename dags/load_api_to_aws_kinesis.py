@@ -20,9 +20,10 @@ def _set_api_user_id(api_user_id, **kwargs):
         logger.info(f"type:: {type(api_user_id)} and api_user_id:: {api_user_id}")
 
         if api_user_id == -1 or api_user_id == 10:
-            Variable.set(key="api_user_id", value=1)
+            Variable.set(key="api_user_id", value=str(1))
         else:
-            Variable.set(key="api_user_id", value=int(api_user_id)+1)
+            Variable.set(key="api_user_id", value=str(int(api_user_id) + 1))
+
         return f"Latest api user id {Variable.get('api_user_id')} set successfully"
 
     except Exception as e:
@@ -105,6 +106,7 @@ with DAG(
     )
 
     get_api_userId_params >> extract_userposts >> write_userposts_to_stream
+
 
 
 
