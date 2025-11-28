@@ -50,7 +50,7 @@ def _extract_userposts(new_api_user_id=1, **kwargs):
 def _process_user_posts(new_api_user_id=1, **kwargs):
     try:
         ti = kwargs["ti"]
-        stream_name = "user-posts-data-stream"
+        stream_name = "p10-airflow-data-stream"
 
         # PULL FROM XCOM
         user_posts = ti.xcom_pull(task_ids='extract_userposts', key='user_posts')
@@ -106,6 +106,7 @@ with DAG(
     )
 
     get_api_userId_params >> extract_userposts >> write_userposts_to_stream
+
 
 
 
