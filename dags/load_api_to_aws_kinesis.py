@@ -29,7 +29,6 @@ def _set_api_user_id(api_user_id, **kwargs):
         logger.error(f"ERROR WHILE SETTING UP userId param value:: {e}")
         raise
 
-
 def _extract_userposts(new_api_user_id=1, **kwargs):
     try:
         ti = kwargs["ti"]
@@ -46,6 +45,37 @@ def _extract_userposts(new_api_user_id=1, **kwargs):
     except Exception as e:
         logger.error(f"ERROR WHILE FETCHING USER POSTS API DATA:: {e}")
         raise
+
+def _process_user_posts(new_api_user_id=1, **kwargs):
+    try:
+        ti = kwargs["ti"]
+        stream_name = "user-posts-data-stream"
+
+        # PULL FROM XCOM
+        user_posts = ti.xcom_pull(task_ids='extract_userposts', key='user_posts')
+
+        logger.info(f"api data || user_posts:: {user_posts}")
+
+        for user_post in user_posts:
+            response = kinesis_client.put_record(
+                StreamName=stream_name,
+                Data=json.dumps(user_post) + '\n',
+                PartitionKey=str(user_post['userId']),
+                SequenceNumberForOrdering=str(user_post['id'] - 1)
+            )
+
+            logger.info(
+                f"Produced Kinesis record {response['SequenceNumber']} "
+                f"to Shard {response['ShardId']} "
+                f"status {response['ResponseMetadata']['HTTPStatusCode']}"
+            )
+
+        return f"Total {len(user_posts)} posts written to Kinesis stream `{stream_name}`"
+
+    except Exception as e:
+        logger.error(f"ERROR WHILE WRITING USER POSTS TO KINESIS STREAM:: {e}")
+        raise
+
 
 with DAG(
     dag_id='load_api_aws_kinesis',
@@ -75,6 +105,7 @@ with DAG(
     )
 
     get_api_userId_params >> extract_userposts >> write_userposts_to_stream
+
 
 
 
